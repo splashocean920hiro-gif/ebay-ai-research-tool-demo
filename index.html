@@ -814,7 +814,8 @@ It usually takes from several days to 1 week.</textarea>
       <h2>在庫切れ出品(再仕入れ候補)</h2>
       <p class="section-note">出品ページ自体は残っているが在庫0の商品。売れた実績があるので、同じ商品をもう一度仕入れられないか探します</p>
     </div>
-    <button class="run-btn" id="restock-bulk-search-btn" style="margin-bottom:1rem;">在庫切れ全件の仕入れ候補を一括取得</button>
+    <button class="run-btn" id="restock-fetch-listings-btn" style="margin-bottom:0.7rem;">出品済み商品を取得</button>
+    <button class="run-btn" id="restock-bulk-search-btn" style="margin-bottom:1rem;" disabled>在庫切れ全件の仕入れ候補を一括取得</button>
     <div class="table-wrap">
       <table id="restock-table">
         <thead>
@@ -1336,11 +1337,21 @@ It usually takes from several days to 1 week.</textarea>
     );
   }
 
+  var restockFetchBtn = document.getElementById("restock-fetch-listings-btn");
   var restockBulkBtn = document.getElementById("restock-bulk-search-btn");
+  var listingsFetched = false;
   var restockCandidatesFetched = false;
 
   function renderRestockTable() {
     var restockBody = document.getElementById("restock-body");
+
+    if (!listingsFetched) {
+      restockBulkBtn.disabled = true;
+      restockBulkBtn.textContent = "在庫切れ全件の仕入れ候補を一括取得";
+      restockBody.innerHTML = '<tr><td colspan="6" class="table-placeholder">まず上の「出品済み商品を取得」を押して、現在の出品状況(在庫数)を取得してください。</td></tr>';
+      return;
+    }
+
     var soldOut = listings.filter(function (l) { return l.qty === 0; });
 
     restockBulkBtn.disabled = !soldOut.length;
@@ -1373,6 +1384,18 @@ It usually takes from several days to 1 week.</textarea>
       );
     }).join("");
   }
+
+  restockFetchBtn.addEventListener("click", function () {
+    restockFetchBtn.disabled = true;
+    restockFetchBtn.textContent = "取得中...";
+    setTimeout(function () {
+      listingsFetched = true;
+      restockCandidatesFetched = false;
+      restockFetchBtn.disabled = false;
+      restockFetchBtn.textContent = "出品済み商品を再取得(" + listings.length + "件)";
+      renderRestockTable();
+    }, 700);
+  });
 
   restockBulkBtn.addEventListener("click", function () {
     restockCandidatesFetched = true;
