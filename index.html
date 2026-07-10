@@ -98,6 +98,100 @@
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
+  .settings-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--font-body);
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: var(--ink-soft);
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    padding: 0.4rem 0.7rem;
+    cursor: pointer;
+  }
+  .settings-btn:hover { color: var(--ink); border-color: var(--ink-faint); }
+  .settings-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-faint); }
+  .settings-dot.on { background: var(--positive); }
+
+  /* ---- settings modal ---- */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 4vh 1rem;
+    overflow-y: auto;
+    z-index: 100;
+  }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 8px;
+    max-width: 640px;
+    width: 100%;
+    padding: 1.4rem 1.5rem 1.6rem;
+  }
+  .modal-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.9rem;
+  }
+  .modal-head h2 { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; margin: 0; }
+  .modal-close {
+    font-size: 1.3rem;
+    line-height: 1;
+    color: var(--ink-faint);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.1rem 0.4rem;
+  }
+  .modal-close:hover { color: var(--ink); }
+  .modal-security-note {
+    font-size: 0.82rem;
+    color: var(--ink-soft);
+    background: var(--surface-sunken);
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    padding: 0.7rem 0.9rem;
+    margin-bottom: 1.2rem;
+    line-height: 1.6;
+  }
+  .settings-group { margin-bottom: 1.2rem; }
+  .settings-group h3 {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--ink-soft);
+    margin: 0 0 0.55rem;
+  }
+  .settings-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem 1rem; }
+  @media (max-width: 560px) {
+    .settings-fields { grid-template-columns: 1fr; }
+  }
+  .modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 1.4rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+  }
+  #settings-status { font-size: 0.84rem; color: var(--ink-faint); }
+  #settings-status.on { color: var(--positive); font-weight: 600; }
+  .connection-note {
+    font-size: 0.82rem;
+    color: var(--ink-faint);
+    margin: -0.5rem 0 0.9rem;
+  }
+  .connection-note.on { color: var(--positive); }
 
   /* ---- mode toggle ---- */
   .mode-toggle {
@@ -623,6 +717,70 @@
     <h1>eBay AIリサーチ・検品ツール</h1>
     <span class="demo-chip">Demo — 生き残り候補はprofit_calc.py実計算</span>
     <span class="meta">最終実行: 2026-07-10 04:12 / 次回実行: 今夜 03:00</span>
+    <button type="button" class="settings-btn" id="settings-btn">
+      <span class="settings-dot" id="settings-dot"></span>
+      ⚙ 設定
+    </button>
+  </div>
+
+  <div class="modal-backdrop" id="settings-backdrop" style="display:none;">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal-head">
+        <h2 id="settings-title">初期設定</h2>
+        <button type="button" class="modal-close" id="settings-close" aria-label="閉じる">×</button>
+      </div>
+      <div class="modal-security-note">
+        「出品済み商品の取得」「新規リサーチ時の重複除外」を実際のeBayデータで安定して動かすための接続設定です。<br>
+        <strong>この画面の入力値はブラウザのローカルストレージに保存されるデモ用の値です。</strong>
+        本番運用ではAPIキー・トークンをブラウザには一切保存せず、Railway等のサーバー側環境変数で管理し、このツールはサーバー経由でAPIを呼び出す構成にします。
+      </div>
+
+      <div class="settings-group">
+        <h3>eBayセラーアカウント</h3>
+        <label class="seller-field">
+          <span>ストアURL または セラーID</span>
+          <input type="text" id="cfg-ebay-store" placeholder="例: https://www.ebay.com/str/japantreasurebox">
+        </label>
+      </div>
+
+      <div class="settings-group">
+        <h3>eBay Developer API</h3>
+        <p class="section-note" style="margin-bottom:0.6rem;">出品・在庫の取得(Inventory API)、相場調査(Browse API)に使用します。eBay Developer Programでの取得が必要です。Marketplace Insights APIは審査制のため、申請状況を別途ご確認ください。</p>
+        <div class="settings-fields">
+          <label class="seller-field"><span>App ID (Client ID)</span><input type="text" id="cfg-ebay-appid" placeholder="App ID" autocomplete="off"></label>
+          <label class="seller-field"><span>Cert ID (Client Secret)</span><input type="password" id="cfg-ebay-certid" placeholder="Cert ID" autocomplete="off"></label>
+          <label class="seller-field"><span>Dev ID</span><input type="text" id="cfg-ebay-devid" placeholder="Dev ID" autocomplete="off"></label>
+          <label class="seller-field"><span>環境</span>
+            <select id="cfg-ebay-env">
+              <option value="production">Production</option>
+              <option value="sandbox">Sandbox</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h3>仕入れ元API</h3>
+        <label class="seller-field">
+          <span>楽天市場API アプリケーションID</span>
+          <input type="text" id="cfg-rakuten-appid" placeholder="例: 1234567890123456789" autocomplete="off">
+        </label>
+        <p class="section-note" style="margin-top:0.5rem;">2ndSTREET・ハードオフ・ヤフオク!は公式APIがないため、スクレイピングでの取得になります(各サイトの利用規約の確認が必要です)。</p>
+      </div>
+
+      <div class="settings-group">
+        <h3>為替レート</h3>
+        <label class="seller-field">
+          <span>USD/JPY(空欄なら固定値 161.7225 を使用)</span>
+          <input type="number" id="cfg-fx-rate" step="0.0001" placeholder="161.7225">
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <span id="settings-status">未設定(現在はサンプルデータで動作中)</span>
+        <button type="button" class="run-btn" id="settings-save" style="width:auto; margin-top:0;">保存</button>
+      </div>
+    </div>
   </div>
 
   <div class="mode-toggle" id="mode-toggle" role="tablist">
@@ -728,6 +886,7 @@ It usually takes from several days to 1 week.</textarea>
       </div>
     </div>
     <div class="coverage-line" id="coverage-line"></div>
+    <p class="connection-note" id="new-research-connection-note"></p>
     <button class="run-btn" id="run-research-btn">この設定でリサーチ開始</button>
   </section>
 
@@ -814,6 +973,7 @@ It usually takes from several days to 1 week.</textarea>
       <h2>在庫切れ出品(再仕入れ候補)</h2>
       <p class="section-note">出品ページ自体は残っているが在庫0の商品。売れた実績があるので、同じ商品をもう一度仕入れられないか探します</p>
     </div>
+    <p class="connection-note" id="restock-connection-note"></p>
     <button class="run-btn" id="restock-fetch-listings-btn" style="margin-bottom:0.7rem;">出品済み商品を取得</button>
     <button class="run-btn" id="restock-bulk-search-btn" style="margin-bottom:1rem;" disabled>在庫切れ全件の仕入れ候補を一括取得</button>
     <div class="table-wrap">
@@ -843,6 +1003,94 @@ It usually takes from several days to 1 week.</textarea>
 </div>
 
 <script>
+  // ---- 初期設定(eBay API・セラーアカウント・楽天API・為替) ----
+  // デモではブラウザのlocalStorageに保存するのみで、実際のAPI呼び出しは行わない。
+  // 本番ではAPIキー・トークンはサーバー側(Railway環境変数など)で管理する想定。
+  var SETTINGS_STORAGE_KEY = "ebayToolSettings";
+  var CFG_FIELDS = ["ebayStore", "ebayAppId", "ebayCertId", "ebayDevId", "ebayEnv", "rakutenAppId", "fxRate"];
+
+  function loadSettings() {
+    try {
+      return JSON.parse(localStorage.getItem(SETTINGS_STORAGE_KEY)) || {};
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function isApiConfigured(cfg) {
+    return !!(cfg.ebayAppId && cfg.ebayCertId && cfg.ebayDevId);
+  }
+
+  var settingsBackdrop = document.getElementById("settings-backdrop");
+  var settingsBtn = document.getElementById("settings-btn");
+  var settingsClose = document.getElementById("settings-close");
+  var settingsSave = document.getElementById("settings-save");
+  var settingsDot = document.getElementById("settings-dot");
+  var settingsStatusEl = document.getElementById("settings-status");
+  var cfgInputs = {
+    ebayStore: document.getElementById("cfg-ebay-store"),
+    ebayAppId: document.getElementById("cfg-ebay-appid"),
+    ebayCertId: document.getElementById("cfg-ebay-certid"),
+    ebayDevId: document.getElementById("cfg-ebay-devid"),
+    ebayEnv: document.getElementById("cfg-ebay-env"),
+    rakutenAppId: document.getElementById("cfg-rakuten-appid"),
+    fxRate: document.getElementById("cfg-fx-rate")
+  };
+
+  function refreshSettingsUi() {
+    var cfg = loadSettings();
+    var configured = isApiConfigured(cfg);
+
+    settingsDot.classList.toggle("on", configured);
+    settingsStatusEl.classList.toggle("on", configured);
+    settingsStatusEl.textContent = configured
+      ? "✓ eBay API接続設定あり(App ID: " + cfg.ebayAppId.slice(0, 4) + "••••)"
+      : "未設定(現在はサンプルデータで動作中)";
+
+    var newNote = document.getElementById("new-research-connection-note");
+    var restockNote = document.getElementById("restock-connection-note");
+    var connMsg = configured
+      ? ""
+      : "⚠ eBay API未設定のため、サンプルデータで動作しています。右上の「⚙ 設定」から接続情報を登録してください。";
+    if (newNote) { newNote.textContent = connMsg; newNote.classList.toggle("on", configured); }
+    if (restockNote) { restockNote.textContent = connMsg; restockNote.classList.toggle("on", configured); }
+  }
+
+  function openSettings() {
+    var cfg = loadSettings();
+    CFG_FIELDS.forEach(function (key) {
+      if (cfgInputs[key] && cfg[key] != null) cfgInputs[key].value = cfg[key];
+    });
+    settingsBackdrop.style.display = "flex";
+  }
+
+  function closeSettings() {
+    settingsBackdrop.style.display = "none";
+  }
+
+  settingsBtn.addEventListener("click", openSettings);
+  settingsClose.addEventListener("click", closeSettings);
+  settingsBackdrop.addEventListener("click", function (e) {
+    if (e.target === settingsBackdrop) closeSettings();
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && settingsBackdrop.style.display !== "none") closeSettings();
+  });
+
+  settingsSave.addEventListener("click", function () {
+    var cfg = {};
+    CFG_FIELDS.forEach(function (key) {
+      if (cfgInputs[key]) cfg[key] = cfgInputs[key].value.trim();
+    });
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(cfg));
+    refreshSettingsUi();
+    var original = settingsSave.textContent;
+    settingsSave.textContent = "保存しました";
+    setTimeout(function () { settingsSave.textContent = original; }, 1200);
+  });
+
+  refreshSettingsUi();
+
   var SCAN_PER_COMBO = 25; // 1つの ジャンル×仕入れ先×仕向地 の組み合わせあたりの想定スキャン件数(デモ用の目安値)
   var genreGroup = document.getElementById("genre-group");
   var sourceGroup = document.getElementById("source-group");
