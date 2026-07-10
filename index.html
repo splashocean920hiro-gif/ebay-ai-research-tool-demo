@@ -144,6 +144,55 @@
   }
   .exclude-note strong { color: var(--ink-soft); font-family: var(--font-mono); }
   .restock-src { font-size: 0.86rem; color: var(--ink-soft); }
+  .candidate-list { display: flex; flex-direction: column; gap: 0.6rem; align-items: flex-start; }
+  .candidate-card {
+    display: flex;
+    gap: 0.6rem;
+    max-width: 24rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    padding: 0.5rem;
+    background: var(--surface-sunken);
+  }
+  .candidate-thumb {
+    width: 3.6rem;
+    height: 3.6rem;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid var(--line-strong);
+    flex-shrink: 0;
+    background: var(--surface);
+  }
+  .candidate-info { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+  .candidate-name-link {
+    font-family: var(--font-body);
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .candidate-name-link:hover { color: var(--accent); text-decoration: underline; }
+  .candidate-price { font-family: var(--font-mono); font-weight: 700; font-size: 0.82rem; color: var(--ink); }
+  .candidate-none { color: var(--negative); font-size: 0.9rem; }
+  .candidate-unfetched { color: var(--ink-faint); font-size: 0.84rem; }
+  .candidate-match { font-size: 0.72rem; font-weight: 600; }
+  .candidate-match.match-high { color: var(--positive); }
+  .candidate-match.match-check { color: var(--negative); }
+  .candidate-lens-btn {
+    align-self: flex-start;
+    margin-top: 0.15rem;
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 0.15rem 0.45rem;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .candidate-lens-btn:hover { background: var(--accent); color: #fff; }
 
   /* ---- KPI tiles ---- */
   .kpis {
@@ -765,7 +814,7 @@ It usually takes from several days to 1 week.</textarea>
       <h2>在庫切れ出品(再仕入れ候補)</h2>
       <p class="section-note">出品ページ自体は残っているが在庫0の商品。売れた実績があるので、同じ商品をもう一度仕入れられないか探します</p>
     </div>
-    <button class="run-btn" id="restock-bulk-search-btn" style="margin-bottom:1rem;">在庫切れ全件を仕入れ元で一括検索</button>
+    <button class="run-btn" id="restock-bulk-search-btn" style="margin-bottom:1rem;">在庫切れ全件の仕入れ候補を一括取得</button>
     <div class="table-wrap">
       <table id="restock-table">
         <thead>
@@ -774,15 +823,14 @@ It usually takes from several days to 1 week.</textarea>
             <th>現在の出品状況</th>
             <th class="num">累計販売数</th>
             <th class="num">eBay想定売値</th>
-            <th>前回の仕入れ元</th>
             <th class="num">想定利益(前回データ流用)</th>
-            <th>再仕入れ元を探す</th>
+            <th>仕入れ候補(商品単位)</th>
           </tr>
         </thead>
         <tbody id="restock-body"></tbody>
       </table>
     </div>
-    <p class="section-note" style="margin-top:0.9rem;">実運用ではeBay Inventory API(またはSell API)で出品中SKUの在庫数を毎晩取得し、qty=0のものだけを自動でここに並べます。「想定利益」は前回このツールでリサーチした際の仕入れ値・梱包サイズを流用した値のため、再仕入れ時は実際の現在価格で仕入れ値を確認してください。</p>
+    <p class="section-note" style="margin-top:0.9rem;">実運用ではeBay Inventory API(またはSell API)で出品中SKUの在庫数を毎晩取得し、qty=0のものだけを自動でここに並べます。「仕入れ候補」は仕入れ先サイトを商品単位でスクレイピングし、見つかった具体的な商品ページを表示します(見つからない場合は❌)。誤った商品を仕入れないよう、候補ごとに①型番一致/商品名類似のみを示す一致根拠、②候補商品の写真から「Google Lensで画像照合」ボタン(Googleレンズで類似画像を検索し、出品中の実物写真と見比べられます)を表示しています。特に「⚠要目視確認」の候補は、購入前に必ず写真と実物説明を照合してください。「想定利益」は前回このツールでリサーチした際の仕入れ値・梱包サイズを流用した値のため、再仕入れ時は候補商品の実際の価格で仕入れ値を確認してください。</p>
   </section>
 
   <footer>
@@ -1012,14 +1060,28 @@ It usually takes from several days to 1 week.</textarea>
   // 実運用では eBay Inventory API / Sell API から毎晩取得する想定。
   // matchIdx: survivors配列と同一商品の場合、そのインデックスを指定(仕入れ値・梱包データを再利用するため)。
   // qty: 現在庫。0のものだけが「在庫補充リサーチ」の対象になる。
+  // candidates: 仕入れ先で見つかった商品単位の候補(実運用ではスクレイピング結果)。
+  // 空配列 [] は「候補が見つからなかった」ことを表す(表内で❌表示になる)。
+  // confidence: "high"(型番等の客観情報が一致) / "check"(商品名の類似のみ・目視確認を推奨)
+  // imageUrl: 実運用では仕入れ先サイトから取得した実際の商品写真。デモではプレースホルダー画像。
   var listings = [
-    { title: "SEIKO 5 ヴィンテージ自動巻き腕時計(型番 SNK807)", matchIdx: 0, qty: 0, sold: 7 },
-    { title: "Canon AE-1 フィルムカメラ 本体+レンズ", matchIdx: 1, qty: 3, sold: 2 },
-    { title: "NINTENDO ゲームボーイポケット(本体・動作確認済み)", matchIdx: 5, qty: 0, sold: 4 },
-    { title: "CASIO G-SHOCK DW-5600 復刻モデル", matchIdx: null, qty: 0, sold: 12, sell: 65, src: "楽天market", srcQ: "カシオ G-SHOCK DW-5600" },
-    { title: "PENTAX K1000 フィルムカメラ ボディ", matchIdx: null, qty: 0, sold: 2, sell: 110, src: "2ndストリート", srcQ: "ペンタックス K1000 フィルムカメラ" },
-    { title: "ポケモンカード 旧裏面 ピカチュウ", matchIdx: null, qty: 0, sold: 15, sell: 95, src: "ヤフオク!", srcQ: "ポケモンカード ピカチュウ 旧裏面" },
-    { title: "TASCAM ポータブルMTR", matchIdx: null, qty: 1, sold: 5, sell: 88, src: "ハードオフ", srcQ: "TASCAM ポータブル MTR" }
+    { title: "SEIKO 5 ヴィンテージ自動巻き腕時計(型番 SNK807)", matchIdx: 0, qty: 0, sold: 7, candidates: [
+      { name: "SEIKO5 スポーツ SNK807K2 自動巻き メンズ 中古美品", priceJpy: 7480, src: "楽天market", query: "SEIKO5 SNK807K2 自動巻き 中古", confidence: "high", matchNote: "型番一致(SNK807)", imageUrl: "https://picsum.photos/seed/snk807a/200/200" },
+      { name: "セイコー5 SNK807 オートマチック ブラック文字盤 稼働品", priceJpy: 8200, src: "ヤフオク!", query: "セイコー5 SNK807 オートマチック", confidence: "high", matchNote: "型番一致(SNK807)", imageUrl: "https://picsum.photos/seed/snk807b/200/200" }
+    ] },
+    { title: "Canon AE-1 フィルムカメラ 本体+レンズ", matchIdx: 1, qty: 3, sold: 2, candidates: [] },
+    { title: "NINTENDO ゲームボーイポケット(本体・動作確認済み)", matchIdx: 5, qty: 0, sold: 4, candidates: [
+      { name: "ゲームボーイポケット アトミックパープル 本体のみ 動作品", priceJpy: 4200, src: "2ndストリート", query: "ゲームボーイポケット 本体 動作品", confidence: "check", matchNote: "型番情報なし・色/状態は目視確認を推奨", imageUrl: "https://picsum.photos/seed/gbpocket/200/200" }
+    ] },
+    { title: "CASIO G-SHOCK DW-5600 復刻モデル", matchIdx: null, qty: 0, sold: 12, sell: 65, candidates: [] },
+    { title: "PENTAX K1000 フィルムカメラ ボディ", matchIdx: null, qty: 0, sold: 2, sell: 110, candidates: [
+      { name: "PENTAX K1000 フィルム一眼レフ ボディのみ 動作確認済み", priceJpy: 9800, src: "ハードオフ", query: "PENTAX K1000 フィルムカメラ ボディ", confidence: "high", matchNote: "型番一致(K1000)", imageUrl: "https://picsum.photos/seed/k1000/200/200" }
+    ] },
+    { title: "ポケモンカード 旧裏面 ピカチュウ", matchIdx: null, qty: 0, sold: 15, sell: 95, candidates: [
+      { name: "ポケモンカード ピカチュウ 旧裏面 美品", priceJpy: 6000, src: "ヤフオク!", query: "ポケモンカード ピカチュウ 旧裏面", confidence: "check", matchNote: "状態・鑑定の有無は目視確認が必要", imageUrl: "https://picsum.photos/seed/pikachu1/200/200" },
+      { name: "ピカチュウ 旧裏面 なみのり 美品・鑑定なし", priceJpy: 7200, src: "ヤフオク!", query: "ピカチュウ 旧裏面 なみのり", confidence: "check", matchNote: "技違い個体の可能性あり・要目視確認", imageUrl: "https://picsum.photos/seed/pikachu2/200/200" }
+    ] },
+    { title: "TASCAM ポータブルMTR", matchIdx: null, qty: 1, sold: 5, sell: 88, candidates: [] }
   ];
   // 既存出品と一致する survivors は「新規商品リサーチ」の候補から除外する(在庫の有無を問わない)
   listings.forEach(function (l) {
@@ -1239,27 +1301,57 @@ It usually takes from several days to 1 week.</textarea>
 
   function restockSourceInfo(l) {
     var match = l.matchIdx != null ? survivors[l.matchIdx] : null;
-    return {
-      match: match,
-      sell: match ? match.sell : l.sell,
-      src: match ? match.src : l.src,
-      srcQ: match ? match.srcQ : l.srcQ
-    };
+    return { match: match, sell: match ? match.sell : l.sell };
+  }
+
+  function googleLensUrl(imageUrl) {
+    return "https://lens.google.com/uploadbyurl?url=" + encodeURIComponent(imageUrl);
+  }
+
+  function renderCandidateCell(l) {
+    if (!restockCandidatesFetched) {
+      return '<span class="candidate-unfetched">未取得(上の「一括取得」を押してください)</span>';
+    }
+    if (!l.candidates.length) {
+      return '<span class="candidate-none">❌ 候補見つからず(仕入れ先を手動で確認してください)</span>';
+    }
+    return (
+      '<div class="candidate-list">' +
+      l.candidates.map(function (c) {
+        var matchClass = c.confidence === "high" ? "match-high" : "match-check";
+        var matchIcon = c.confidence === "high" ? "✓" : "⚠";
+        return (
+          '<div class="candidate-card">' +
+          '<img class="candidate-thumb" src="' + c.imageUrl + '" alt="" loading="lazy">' +
+          '<div class="candidate-info">' +
+          '<a class="candidate-name-link" href="' + sourceUrl(c.src, c.query) + '" target="_blank" rel="noopener">' + escapeHtml(c.name) + '(' + c.src + ')</a>' +
+          '<span class="candidate-price">¥' + c.priceJpy.toLocaleString() + '</span>' +
+          '<span class="candidate-match ' + matchClass + '">' + matchIcon + ' ' + escapeHtml(c.matchNote) + '</span>' +
+          '<a class="candidate-lens-btn" href="' + googleLensUrl(c.imageUrl) + '" target="_blank" rel="noopener">🔍 Google Lensで画像照合</a>' +
+          '</div>' +
+          '</div>'
+        );
+      }).join("") +
+      '</div>'
+    );
   }
 
   var restockBulkBtn = document.getElementById("restock-bulk-search-btn");
+  var restockCandidatesFetched = false;
 
   function renderRestockTable() {
     var restockBody = document.getElementById("restock-body");
     var soldOut = listings.filter(function (l) { return l.qty === 0; });
 
     restockBulkBtn.disabled = !soldOut.length;
-    restockBulkBtn.textContent = soldOut.length
-      ? "在庫切れ全件(" + soldOut.length + "件)を仕入れ元で一括検索"
-      : "在庫切れ全件を仕入れ元で一括検索";
+    restockBulkBtn.textContent = !soldOut.length
+      ? "在庫切れ全件の仕入れ候補を一括取得"
+      : restockCandidatesFetched
+        ? "仕入れ候補を再取得(" + soldOut.length + "件)"
+        : "在庫切れ全件(" + soldOut.length + "件)の仕入れ候補を一括取得";
 
     if (!soldOut.length) {
-      restockBody.innerHTML = '<tr><td colspan="7" class="table-placeholder">現在、在庫0の出品はありません。</td></tr>';
+      restockBody.innerHTML = '<tr><td colspan="6" class="table-placeholder">現在、在庫0の出品はありません。</td></tr>';
       return;
     }
     restockBody.innerHTML = soldOut.map(function (l) {
@@ -1275,20 +1367,16 @@ It usually takes from several days to 1 week.</textarea>
         '<td><span class="reason-tag" style="color: var(--negative); border-color: var(--negative);">在庫0</span></td>' +
         '<td class="num">' + l.sold + '</td>' +
         '<td class="num">$' + info.sell + '</td>' +
-        '<td class="restock-src">' + info.src + '</td>' +
         '<td class="num">' + profitCell + '</td>' +
-        '<td><a class="cell-link" href="' + sourceUrl(info.src, info.srcQ) + '" target="_blank" rel="noopener">仕入れ元を再検索</a></td>' +
+        '<td>' + renderCandidateCell(l) + '</td>' +
         '</tr>'
       );
     }).join("");
   }
 
   restockBulkBtn.addEventListener("click", function () {
-    var soldOut = listings.filter(function (l) { return l.qty === 0; });
-    soldOut.forEach(function (l) {
-      var info = restockSourceInfo(l);
-      window.open(sourceUrl(info.src, info.srcQ), "_blank", "noopener");
-    });
+    restockCandidatesFetched = true;
+    renderRestockTable();
   });
 
   // ---- 商品ページ生成(タイトル・説明文) ----
