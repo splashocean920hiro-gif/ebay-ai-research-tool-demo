@@ -99,6 +99,52 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* ---- mode toggle ---- */
+  .mode-toggle {
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 1.8rem;
+  }
+  .mode-btn {
+    flex: 1;
+    text-align: left;
+    font-family: var(--font-body);
+    padding: 0.85rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .mode-btn .mode-btn-title {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--ink);
+    margin-bottom: 0.2rem;
+  }
+  .mode-btn .mode-btn-sub {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+  }
+  .mode-btn.active {
+    border-color: var(--accent);
+    border-width: 2px;
+    padding: calc(0.85rem - 1px) calc(1rem - 1px);
+    background: var(--surface-sunken);
+  }
+  .mode-btn.active .mode-btn-title { color: var(--accent); }
+  @media (max-width: 600px) {
+    .mode-toggle { flex-direction: column; }
+  }
+  .exclude-note {
+    font-size: 0.85rem;
+    color: var(--ink-faint);
+    margin: -0.4rem 0 0.9rem;
+  }
+  .exclude-note strong { color: var(--ink-soft); font-family: var(--font-mono); }
+  .restock-src { font-size: 0.86rem; color: var(--ink-soft); }
+
   /* ---- KPI tiles ---- */
   .kpis {
     display: grid;
@@ -357,6 +403,50 @@
   }
   .ship-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
+  .pkg-cell { white-space: normal; }
+  .pkg-display {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.86rem;
+    color: var(--ink);
+    background: transparent;
+    border: 1px dashed var(--line-strong);
+    border-radius: 4px;
+    padding: 0.3rem 0.5rem;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+  }
+  .pkg-display:hover { border-color: var(--accent); }
+  .pkg-note { display: block; font-family: var(--font-body); font-size: 0.72rem; color: var(--ink-faint); margin-top: 0.15rem; }
+  .pkg-display.pkg-is-edited { border-style: solid; border-color: var(--accent); }
+  .pkg-display.pkg-is-edited .pkg-note { color: var(--accent); }
+  .pkg-edit { display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem; font-family: var(--font-mono); font-size: 0.82rem; color: var(--ink); }
+  .pkg-edit input {
+    width: 3rem;
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    color: var(--ink);
+    background: var(--surface-sunken);
+    border: 1px solid var(--line-strong);
+    border-radius: 4px;
+    padding: 0.25rem 0.3rem;
+  }
+  .pkg-edit input.pkg-kg-input { width: 3.6rem; }
+  .pkg-edit .pkg-unit { color: var(--ink-faint); font-size: 0.76rem; }
+  .pkg-save-btn {
+    font-family: var(--font-body);
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--accent);
+    background: transparent;
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 0.25rem 0.6rem;
+    cursor: pointer;
+  }
+  .pkg-save-btn:hover { background: var(--accent); color: #fff; }
+
   footer {
     margin-top: 3rem;
     padding-top: 1.1rem;
@@ -486,7 +576,18 @@
     <span class="meta">最終実行: 2026-07-10 04:12 / 次回実行: 今夜 03:00</span>
   </div>
 
-  <section class="seller-section">
+  <div class="mode-toggle" id="mode-toggle" role="tablist">
+    <button type="button" class="mode-btn active" id="mode-btn-new" data-mode="new" role="tab" aria-selected="true">
+      <span class="mode-btn-title">新規商品リサーチ</span>
+      <span class="mode-btn-sub">まだ出品していない商品を新規に探す。既存の出品と重複する候補は自動除外</span>
+    </button>
+    <button type="button" class="mode-btn" id="mode-btn-restock" data-mode="restock" role="tab" aria-selected="false">
+      <span class="mode-btn-title">在庫補充リサーチ</span>
+      <span class="mode-btn-sub">出品中だが在庫0の商品を対象に、同じ商品をもう一度仕入れられるか調べる</span>
+    </button>
+  </div>
+
+  <section class="seller-section" id="seller-section">
     <div class="section-head">
       <h2>セラー情報(共通設定・一度だけ入力)</h2>
       <p class="section-note">ここで入力した内容は、以降すべての商品ページ生成に自動で差し込まれます</p>
@@ -515,7 +616,7 @@ It usually takes from several days to 1 week.</textarea>
     </div>
   </section>
 
-  <section>
+  <section id="research-section">
     <div class="section-head">
       <h2>リサーチ設定</h2>
       <p class="section-note">広く・効率よく候補を集めるための検索範囲</p>
@@ -581,7 +682,7 @@ It usually takes from several days to 1 week.</textarea>
     <button class="run-btn" id="run-research-btn">この設定でリサーチ開始</button>
   </section>
 
-  <div class="kpis">
+  <div class="kpis" id="kpis-section">
     <div class="kpi">
       <div class="label">スキャン件数</div>
       <div class="value">150</div>
@@ -604,11 +705,12 @@ It usually takes from several days to 1 week.</textarea>
     </div>
   </div>
 
-  <section>
+  <section id="survivor-section">
     <div class="section-head">
       <h2>生き残り候補(検品ゲート通過)</h2>
       <p class="section-note">列見出しクリックで並び替え</p>
     </div>
+    <p class="exclude-note" id="exclude-note"></p>
     <label class="toggle-row">
       <input type="checkbox" id="epacket-toggle">
       <span>日本郵便eパケットを利用停止に設定(郵便局の引受停止に備えたシミュレーション)</span>
@@ -623,6 +725,7 @@ It usually takes from several days to 1 week.</textarea>
             <th>仕入れ元</th>
             <th class="num">仕入れ値</th>
             <th class="num">eBay想定売値</th>
+            <th>梱包サイズ(概算・編集可)</th>
             <th>配送方法(選択可)</th>
             <th class="num">送料</th>
             <th class="num sortable" data-key="profit">利益<span class="arrow">▾</span></th>
@@ -632,13 +735,13 @@ It usually takes from several days to 1 week.</textarea>
           </tr>
         </thead>
         <tbody id="survivor-body">
-          <tr><td colspan="12" class="table-placeholder">上の「リサーチ設定」で条件を選び、「この設定でリサーチ開始」ボタンを押してください。</td></tr>
+          <tr><td colspan="13" class="table-placeholder">上の「リサーチ設定」で条件を選び、「この設定でリサーチ開始」ボタンを押してください。</td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
-  <section>
+  <section id="listing-section">
     <div class="section-head">
       <h2>商品ページ生成</h2>
       <p class="section-note">上の一覧で「生成」を押すと、タイトルと商品説明文(HTML/テキスト)がここに出ます</p>
@@ -648,7 +751,7 @@ It usually takes from several days to 1 week.</textarea>
     </div>
   </section>
 
-  <section>
+  <section id="rejected-section">
     <div class="section-head">
       <h2>却下された候補の例</h2>
       <button class="reveal-btn" id="reveal-btn" aria-expanded="false" aria-controls="rejected-list">4件を表示</button>
@@ -657,8 +760,32 @@ It usually takes from several days to 1 week.</textarea>
     <div class="rejected-list" id="rejected-list"></div>
   </section>
 
+  <section id="restock-section" style="display:none;">
+    <div class="section-head">
+      <h2>在庫切れ出品(再仕入れ候補)</h2>
+      <p class="section-note">出品ページ自体は残っているが在庫0の商品。売れた実績があるので、同じ商品をもう一度仕入れられないか探します</p>
+    </div>
+    <div class="table-wrap">
+      <table id="restock-table">
+        <thead>
+          <tr>
+            <th>商品</th>
+            <th>現在の出品状況</th>
+            <th class="num">累計販売数</th>
+            <th class="num">eBay想定売値</th>
+            <th>前回の仕入れ元</th>
+            <th class="num">想定利益(前回データ流用)</th>
+            <th>再仕入れ元を探す</th>
+          </tr>
+        </thead>
+        <tbody id="restock-body"></tbody>
+      </table>
+    </div>
+    <p class="section-note" style="margin-top:0.9rem;">実運用ではeBay Inventory API(またはSell API)で出品中SKUの在庫数を毎晩取得し、qty=0のものだけを自動でここに並べます。「想定利益」は前回このツールでリサーチした際の仕入れ値・梱包サイズを流用した値のため、再仕入れ時は実際の現在価格で仕入れ値を確認してください。</p>
+  </section>
+
   <footer>
-    <p>生き残り候補の仕入れ値・売値・利益・還付込み利益・配送方法は、実際の profit_calc.py(元の利益計算表_物販ONEの数式を忠実に移植し、既知の値と全件一致を確認済み)で商品ごとに全配送方法を計算した結果です。配送方法はプルダウンで手動選択でき、選び直すと利益・利益率・合計が即座に再計算されます。</p>
+    <p>生き残り候補の送料・利益・還付込み利益は、実際の profit_calc.py(元の利益計算表_物販ONEの数式を忠実に移植し、既知の値と全件一致を確認済み)の米国向け送料計算ロジックをこのページ内のJavaScriptに移植し、商品ごとの梱包サイズ(概算)からその場で計算した結果です。配送方法はプルダウンで手動選択でき、梱包サイズ欄(クリックで編集)を実測値に直すと、利用可能な配送方法・送料・利益・利益率・合計が自動で再計算されます。仕入額・売値からeBay手数料等を差し引いた「送料差引前の純益」はカテゴリ手数料計算(fees.json、未搭載)に依存するため現状は固定値としています。</p>
     <p>一方、スキャン件数・却下率・生き残り件数は、まだ本物のeBayリサーチ結果ではなくサンプルの想定値です(リサーチ設定パネルの数値は目安計算)。実運用にはeBay Developer API登録、および仕入れ元(楽天API・2ndストリート/ハードオフのスクレイピング)の実装が必要です。</p>
     <p>現状の利益計算は米国向け送料のみに対応。関税前提(DDP/DDU)は未確認のため、この利益額には含まれていません。ヤフオク・メルカリは公式APIがなく検品自動化の難易度が高いため、初期は候補が薄い場合の手動チェック用として扱います。</p>
   </footer>
@@ -701,24 +828,175 @@ It usually takes from several days to 1 week.</textarea>
   });
   updateCoverage();
 
-  // profit_calc.py の compute_profit() を実行して得た、商品ごとの全配送方法の実績値をそのまま転記
-  // (仕入額・売値・重量サイズ・eBayカテゴリNo.を入力し、為替161.7225円で計算。
-  //  s=送料 / p=利益 / r=還付込み利益。best=自動選択される最安・最大利益の方法)
+  // ---- 送料計算エンジン(profit_calc.py の米国向けロジックをそのまま移植) ----
+  // 配送業者のレート表(円)。profit_calc.py と同じ data/shipping_us.json の内容。
+  var SHIP_US = {
+    eLogi: {
+      envelope_F4: 3400,
+      pak_F5_F9: [3800, 4400, 5300, 5800, 6600],
+      package_F10: 3800,
+      package_F11_F110: [3600, 4700, 5600, 7200, 8800, 10800, 11600, 12300, 13000, 13700, 17100, 17800, 18600, 19400, 20200, 21000, 21800, 22600, 23300, 24100, 25790, 27480, 29170, 30860, 32550, 34240, 35930, 37620, 39310, 41000, 42690, 44380, 46070, 47760, 49450, 51140, 52830, 54520, 56210, 57900, 59590, 61280, 62970, 64660, 66299, 67938, 69577, 71216, 72855, 74494, 76133, 77772, 79411, 81050, 82689, 84328, 85967, 87606, 89245, 90884, 92523, 94162, 95801, 97440, 99079, 100718, 102357, 103996, 105635, 107257, 108879, 110501, 112123, 113745, 115367, 116989, 118611, 120233, 121855, 123477, 125099, 126721, 128343, 129965, 131587, 133209, 134831, 136453, 138075, 139697, 141319, 142941, 144563, 146185, 147807, 149429, 151051, 152673, 154295, 155897]
+    },
+    FedEx_sample: {
+      envelope_F4: 2012.5,
+      pak_F5_F9: [2262.5, 2762.5, 3137.5, 3387.5, 3762.5],
+      package_F10_F130: [2262.5, 2512.5, 2762.5, 2887.5, 3262.5, 3762.5, 3387.5, 3887.5, 4262.5, 4762.5, 5887.5, 6025, 6287.5, 6425, 6562.5, 6700, 6837.5, 6975, 8862.5, 9000, 9262.5, 9400, 9537.5, 9675, 11437.5, 11700, 11837.5, 12100, 12237.5, 12500, 12637.5, 14150, 15412.5, 15425, 15437.5, 15450, 15462.5, 15475, 16737.5, 16750, 16762.5, 18025, 18050, 19325, 20600, 20625, 21900, 23175, 23200, 24475, 25750, 25775, 27050, 28325, 29600, 29625, 30900, 32175, 32200, 33475, 34750, 34775, 36050, 37325, 37350, 38625, 39900, 39925, 41200, 42475, 42500, 43775, 45050, 45075, 46350, 47625, 47650, 48925, 50200, 50225, 51500, 52775, 52800, 54075, 55350, 55375, 56650, 57925, 57950, 59225, 60500, 60525, 61800, 63075, 63100, 64375, 65650, 65675, 66950, 68225, 68250, 69525, 70800, 70825, 72100, 73375, 73400, 74675, 74700, 75975, 77250, 77275, 78550, 79825, 79850, 81125, 82400, 82425, 83700, 84975, 85000]
+    },
+    CPass: {
+      envelope_G4: 2570.97,
+      pak_G5_G9: [2986.35, 3559.11, 4041.57, 4531.77, 5031],
+      package_G10_G130: [2914.11, 3263.7, 3503.64, 3516.54, 3916.44, 4618.2, 4619.49, 5229.66, 5838.54, 6447.42, 7908.99, 8102.49, 8297.28, 8492.07, 8686.86, 8881.65, 9076.44, 9269.94, 11791.89, 12034.41, 12258.87, 12482.04, 12706.5, 12930.96, 15260.7, 15519.99, 15780.57, 16039.86, 16299.15, 16559.73, 16819.02, 19568.01, 19866, 20162.7, 20460.69, 20758.68, 21055.38, 21353.37, 21651.36, 21948.06, 27157.08, 28449.66, 29742.24, 31036.11, 32328.69, 33622.56, 34915.14, 36209.01, 37501.59, 38795.46, 40088.04, 41380.62, 42655.14, 43947.72, 45240.3, 46532.88, 47825.46, 49118.04, 50410.62, 51703.2, 52995.78, 54288.36, 55580.94, 56873.52, 56873.52, 57559.8, 58811.1, 60062.4, 61313.7, 62565, 63816.3, 65067.6, 66318.9, 67570.2, 68821.5, 70072.8, 71324.1, 72575.4, 73826.7, 75078, 76329.3, 77580.6, 78831.9, 80083.2, 81334.5, 82585.8, 83837.1, 85088.4]
+    },
+    JapanPost: {
+      epacket_C4_C23: [1150, 1280, 1410, 1540, 1670, 1800, 1930, 2060, 2190, 2320, 2450, 2580, 2710, 2840, 2970, 3100, 3230, 3360, 3490, 3620],
+      ems_C24_C29: [3900, 4180, 4460, 4740, 5020, 5300],
+      ems_C30_C33: [5990, 6600, 7290, 7900],
+      ems_C34_C41: [9100, 10300, 11500, 12700, 13900, 15100, 16300, 17500],
+      ems_C42_C65: [19900, 22300, 24700, 27100, 29500, 31900, 34300, 36700, 39100, 41500, 43900, 46300, 48700, 51100, 53500, 55900, 58300, 60700, 63100, 65500, 67900, 70300, 72700, 75100]
+    },
+    economy: {
+      package_G4_G69: [1227, 1367, 1581, 1778, 2060, 2222, 2321, 2703, 2820, 3020, 3136, 3250, 3366, 3704, 3816, 3935, 4046, 4165, 5056, 5245, 5582, 6333, 6958, 7704, 9135, 11733, 12500, 13335, 14160, 15209, 16058, 16893, 17562, 18152, 19106, 19639, 20276, 20864, 21565, 22199, 22887, 23466, 24054, 24869, 25200, 25988, 26656, 28149, 28775, 29495, 30196, 30902, 31478, 32204, 32936, 33947, 34655, 35426, 36145, 36859, 37602, 38516, 39084, 39678, 40374, 40955]
+    }
+  };
+
+  function volumetricWeight(d, w, h, divisor) {
+    var total = d + w + h;
+    var pad = total < 90 ? 3 : 5;
+    return (d + pad) * (w + pad) * (h + pad) / divisor;
+  }
+
+  function index1(lst, idx) {
+    if (idx == null || idx < 1 || idx > lst.length) return null;
+    var v = lst[idx - 1];
+    return typeof v === "number" ? v : null;
+  }
+
+  function shippingElogi(actualKg, volKg, d, w, h, sellUsd) {
+    var out = {};
+    out.Envelope = (actualKg <= 0.5 && volKg < 0.5 && sellUsd <= 500) ? SHIP_US.eLogi.envelope_F4 : null;
+    if (actualKg <= 2.5 && (volKg * 5000) <= 15400 && sellUsd <= 500 && d <= 50 && w <= 50 && h <= 50) {
+      out.Pak = index1(SHIP_US.eLogi.pak_F5_F9, Math.ceil(actualKg / 0.5));
+    } else {
+      out.Pak = null;
+    }
+    if (actualKg <= 0.5 && volKg <= 0.5) {
+      out.Package = SHIP_US.eLogi.package_F10;
+    } else {
+      out.Package = index1(SHIP_US.eLogi.package_F11_F110, Math.max(Math.ceil(actualKg), Math.ceil(volKg)));
+    }
+    return out;
+  }
+
+  function fedexLike(actualKg, volKg, d, w, h, sellUsd, rates) {
+    var out = {};
+    out.Envelope = (actualKg <= 0.5 && volKg < 0.5 && sellUsd <= 500) ? rates.envelope : null;
+    if (actualKg <= 2.5 && (volKg * 5000) <= 15400 && sellUsd <= 500 && d <= 50 && w <= 50 && h <= 50) {
+      out.Pak = index1(rates.pak_tiers, Math.ceil(actualKg / 0.5));
+    } else {
+      out.Pak = null;
+    }
+    var m = Math.max(actualKg, volKg);
+    var idx = m <= 21
+      ? Math.max(Math.ceil(actualKg / 0.5), Math.ceil(volKg / 0.5))
+      : Math.max(Math.ceil(actualKg), Math.ceil(volKg)) + 21;
+    out.Package = index1(rates.package_tiers, idx);
+    return out;
+  }
+
+  function shippingEconomy(actualKg, volEconomyKg, d, w, h) {
+    var dims = [d, w, h].sort(function (a, b) { return b - a; });
+    var longest = dims[0], second = dims[1], third = dims[2];
+    var girthOk = longest <= 66 && (longest + 2 * (second + third)) <= 274;
+    if (!(actualKg <= 25 && volEconomyKg <= 25 && girthOk)) return null;
+    var m = Math.max(actualKg, volEconomyKg);
+    var idx = m <= 2
+      ? Math.max(Math.ceil(actualKg / 0.1), Math.ceil(volEconomyKg / 0.1))
+      : Math.max(Math.ceil(actualKg), Math.ceil(volEconomyKg)) + 16;
+    return index1(SHIP_US.economy.package_G4_G69, Math.round(idx));
+  }
+
+  function shippingJapanPost(actualKg) {
+    var out = {};
+    out["eパケット"] = actualKg <= 2 ? index1(SHIP_US.JapanPost.epacket_C4_C23, Math.ceil(actualKg / 0.1)) : null;
+    if (actualKg <= 30) {
+      var candidates = [];
+      var idx1 = Math.ceil(actualKg / 0.1 - 4); if (idx1 <= 0) idx1 = 1;
+      var v1 = index1(SHIP_US.JapanPost.ems_C24_C29, idx1); if (v1) candidates.push(v1);
+      var v2 = index1(SHIP_US.JapanPost.ems_C30_C33, Math.ceil(actualKg / 0.25 - 4)); if (v2) candidates.push(v2);
+      var v3 = index1(SHIP_US.JapanPost.ems_C34_C41, Math.ceil(actualKg / 0.5 - 4)); if (v3) candidates.push(v3);
+      var v4 = index1(SHIP_US.JapanPost.ems_C42_C65, Math.ceil(actualKg / 1 - 6)); if (v4) candidates.push(v4);
+      out.EMS = candidates.length ? candidates.reduce(function (a, b) { return a + b; }, 0) : null;
+    } else {
+      out.EMS = null;
+    }
+    return out;
+  }
+
+  function allShippingOptionsUs(actualKg, d, w, h, sellUsd, disabledSet) {
+    disabledSet = disabledSet || {};
+    var volStandard = volumetricWeight(d, w, h, 5000);
+    var volEconomy = volumetricWeight(d, w, h, 8000);
+    var options = {};
+    var elogi = shippingElogi(actualKg, volStandard, d, w, h, sellUsd);
+    Object.keys(elogi).forEach(function (name) { options["eLogi " + name] = elogi[name]; });
+    var fedex = fedexLike(actualKg, volStandard, d, w, h, sellUsd, {
+      envelope: SHIP_US.FedEx_sample.envelope_F4, pak_tiers: SHIP_US.FedEx_sample.pak_F5_F9, package_tiers: SHIP_US.FedEx_sample.package_F10_F130
+    });
+    Object.keys(fedex).forEach(function (name) { options["FedEx " + name] = fedex[name]; });
+    var cpass = fedexLike(actualKg, volStandard, d, w, h, sellUsd, {
+      envelope: SHIP_US.CPass.envelope_G4, pak_tiers: SHIP_US.CPass.pak_G5_G9, package_tiers: SHIP_US.CPass.package_G10_G130
+    });
+    Object.keys(cpass).forEach(function (name) { options["CPASS " + name] = cpass[name]; });
+    var jp = shippingJapanPost(actualKg);
+    Object.keys(jp).forEach(function (name) { options["日本郵便 " + name] = jp[name]; });
+    options["economy Package"] = shippingEconomy(actualKg, volEconomy, d, w, h);
+
+    var filtered = {};
+    Object.keys(options).forEach(function (k) {
+      if (options[k] != null && !disabledSet[k]) filtered[k] = options[k];
+    });
+    return filtered;
+  }
+
+  // it.net(送料差引前の円建て純益)と it.refund(還付込み加算額)は、
+  // 実際の profit_calc.py の出力(仕入額・売値・カテゴリ手数料・為替から算出)から
+  // 逆算して固定した定数。送料以外の要素(手数料・為替)は梱包サイズを変えても動かないため、
+  // 梱包サイズを編集した時は送料だけをこのエンジンで再計算し、profit = net - cost - 送料 とする。
+  function recomputeOptionsForItem(it) {
+    var shipCosts = allShippingOptionsUs(it.pkg.kg, it.pkg.l, it.pkg.w, it.pkg.h, it.sell, {});
+    var options = {};
+    var bestMethod = null, bestProfit = -Infinity;
+    Object.keys(shipCosts).forEach(function (method) {
+      var s = Math.round(shipCosts[method]);
+      var p = Math.round(it.net - it.cost - s);
+      var r = Math.round(p + it.refund);
+      options[method] = { s: s, p: p, r: r };
+      if (p > bestProfit) { bestProfit = p; bestMethod = method; }
+    });
+    it.options = options;
+    it.best = bestMethod;
+  }
+
+  // 商品ごとの仕入額・売値・梱包サイズ(概算)のみを保持し、送料・利益は上記エンジンで動的に計算する。
   var survivors = [
-    { name: "SEIKO 5 ヴィンテージ自動巻き腕時計", model: "型番 SNK807", src: "楽天market", ebayQ: "Seiko 5 SNK807 automatic vintage", srcQ: "セイコー5 SNK807", cost: 8200, sell: 89, best: "日本郵便 eパケット", options: {"eLogi Envelope": {s: 3400, p: -47, r: 935}, "eLogi Pak": {s: 3800, p: -447, r: 535}, "eLogi Package": {s: 3800, p: -447, r: 535}, "FedEx Envelope": {s: 2012, p: 1341, r: 2323}, "FedEx Pak": {s: 2262, p: 1091, r: 2073}, "FedEx Package": {s: 2262, p: 1091, r: 2073}, "CPASS Envelope": {s: 2571, p: 782, r: 1764}, "CPASS Pak": {s: 2986, p: 367, r: 1349}, "CPASS Package": {s: 2914, p: 439, r: 1421}, "日本郵便 eパケット": {s: 1280, p: 2073, r: 3055}, "日本郵便 EMS": {s: 3900, p: -547, r: 435}, "economy Package": {s: 1581, p: 1772, r: 2754}} },
-    { name: "Canon AE-1 フィルムカメラ 本体+レンズ", model: "AE-1 Program", src: "2ndストリート", ebayQ: "Canon AE-1 Program film camera", srcQ: "キヤノン AE-1 フィルムカメラ", cost: 12000, sell: 145, best: "日本郵便 eパケット", options: {"eLogi Pak": {s: 4400, p: 2466, r: 3939}, "eLogi Package": {s: 4700, p: 2166, r: 3639}, "FedEx Pak": {s: 2762, p: 4104, r: 5576}, "FedEx Package": {s: 2762, p: 4104, r: 5576}, "CPASS Pak": {s: 3559, p: 3307, r: 4780}, "CPASS Package": {s: 3504, p: 3363, r: 4835}, "日本郵便 eパケット": {s: 2190, p: 4676, r: 6149}, "日本郵便 EMS": {s: 5020, p: 1846, r: 3319}, "economy Package": {s: 2820, p: 4046, r: 5519}} },
-    { name: "ポケモンカード 旧裏面 リザードン", model: "美品・鑑定なし", src: "ヤフオク(要仕入確認)", ebayQ: "Pokemon Charizard vintage card", srcQ: "ポケモンカード リザードン 旧裏面", cost: 18500, sell: 210, best: "日本郵便 eパケット", options: {"eLogi Envelope": {s: 3400, p: 5656, r: 7869}, "eLogi Pak": {s: 3800, p: 5256, r: 7469}, "eLogi Package": {s: 3800, p: 5256, r: 7469}, "FedEx Envelope": {s: 2012, p: 7044, r: 9257}, "FedEx Pak": {s: 2262, p: 6794, r: 9007}, "FedEx Package": {s: 2262, p: 6794, r: 9007}, "CPASS Envelope": {s: 2571, p: 6485, r: 8698}, "CPASS Pak": {s: 2986, p: 6070, r: 8283}, "CPASS Package": {s: 2914, p: 6142, r: 8355}, "日本郵便 eパケット": {s: 1150, p: 7906, r: 10119}, "日本郵便 EMS": {s: 3900, p: 5156, r: 7369}, "economy Package": {s: 1367, p: 7689, r: 9902}} },
-    { name: "SONY ウォークマン", model: "WM-2 動作品", src: "ハードオフ", ebayQ: "Sony Walkman WM-2 vintage", srcQ: "ソニー ウォークマン WM-2", cost: 9800, sell: 120, best: "日本郵便 eパケット", options: {"eLogi Envelope": {s: 3400, p: 3102, r: 4245}, "eLogi Pak": {s: 3800, p: 2702, r: 3845}, "eLogi Package": {s: 3800, p: 2702, r: 3845}, "FedEx Envelope": {s: 2012, p: 4490, r: 5633}, "FedEx Pak": {s: 2262, p: 4240, r: 5383}, "FedEx Package": {s: 2262, p: 4240, r: 5383}, "CPASS Envelope": {s: 2571, p: 3931, r: 5074}, "CPASS Pak": {s: 2986, p: 3516, r: 4659}, "CPASS Package": {s: 2914, p: 3588, r: 4731}, "日本郵便 eパケット": {s: 1410, p: 5092, r: 6235}, "日本郵便 EMS": {s: 3900, p: 2602, r: 3745}, "economy Package": {s: 1581, p: 4921, r: 6064}} },
-    { name: "モンブラン マイスターシュテュック 万年筆", model: "中古・箱なし", src: "楽天market", ebayQ: "Montblanc Meisterstuck fountain pen", srcQ: "モンブラン マイスターシュテュック 万年筆", cost: 22000, sell: 260, best: "日本郵便 eパケット", options: {"eLogi Envelope": {s: 3400, p: 8485, r: 11164}, "eLogi Pak": {s: 3800, p: 8085, r: 10764}, "eLogi Package": {s: 3800, p: 8085, r: 10764}, "FedEx Envelope": {s: 2012, p: 9872, r: 12551}, "FedEx Pak": {s: 2262, p: 9622, r: 12301}, "FedEx Package": {s: 2262, p: 9622, r: 12301}, "CPASS Envelope": {s: 2571, p: 9314, r: 11993}, "CPASS Pak": {s: 2986, p: 8898, r: 11578}, "CPASS Package": {s: 2914, p: 8971, r: 11650}, "日本郵便 eパケット": {s: 1280, p: 10605, r: 13284}, "日本郵便 EMS": {s: 3900, p: 7985, r: 10664}, "economy Package": {s: 1581, p: 10304, r: 12983}} },
-    { name: "NINTENDO ゲームボーイポケット", model: "本体・動作確認済み", src: "2ndストリート", ebayQ: "Nintendo Game Boy Pocket console", srcQ: "ゲームボーイポケット 本体", cost: 4500, sell: 58, best: "日本郵便 eパケット", options: {"eLogi Envelope": {s: 3400, p: 146, r: 661}, "eLogi Pak": {s: 3800, p: -254, r: 261}, "eLogi Package": {s: 3800, p: -254, r: 261}, "FedEx Envelope": {s: 2012, p: 1533, r: 2049}, "FedEx Pak": {s: 2262, p: 1283, r: 1799}, "FedEx Package": {s: 2262, p: 1283, r: 1799}, "CPASS Envelope": {s: 2571, p: 975, r: 1490}, "CPASS Pak": {s: 2986, p: 559, r: 1075}, "CPASS Package": {s: 2914, p: 632, r: 1147}, "日本郵便 eパケット": {s: 1280, p: 2266, r: 2781}, "日本郵便 EMS": {s: 3900, p: -354, r: 161}, "economy Package": {s: 1367, p: 2179, r: 2694}} },
-    { name: "YAMAHA ポータブルシンセサイザー", model: "中古・動作品", src: "ハードオフ", ebayQ: "Yamaha portable synthesizer vintage", srcQ: "ヤマハ ポータブル シンセサイザー", cost: 15000, sell: 175, best: "economy Package", options: {"eLogi Package": {s: 10800, p: -1994, r: -266}, "FedEx Package": {s: 6025, p: 2781, r: 4509}, "CPASS Package": {s: 8102, p: 704, r: 2432}, "日本郵便 EMS": {s: 9100, p: -294, r: 1434}, "economy Package": {s: 5245, p: 3561, r: 5289}} },
-    { name: "OMEGA シーマスター", model: "状態要最終確認", src: "ヤフオク(要仕入確認)", ebayQ: "Omega Seamaster vintage watch", srcQ: "オメガ シーマスター", cost: 45000, sell: 520, best: "日本郵便 eパケット", options: {"eLogi Package": {s: 3800, p: 19039, r: 24482}, "FedEx Package": {s: 2262, p: 20577, r: 26020}, "CPASS Package": {s: 2914, p: 19925, r: 25368}, "日本郵便 eパケット": {s: 1280, p: 21559, r: 27002}, "日本郵便 EMS": {s: 3900, p: 18939, r: 24382}, "economy Package": {s: 1581, p: 21258, r: 26701}} },
-    { name: "LEICA C-Lux コンパクトデジカメ", model: "中古美品", src: "2ndストリート", ebayQ: "Leica C-Lux digital camera", srcQ: "ライカ C-LUX コンパクトデジカメ", cost: 16000, sell: 185, best: "日本郵便 eパケット", options: {"eLogi Pak": {s: 3800, p: 4290, r: 6230}, "eLogi Package": {s: 3600, p: 4490, r: 6430}, "FedEx Pak": {s: 2262, p: 5828, r: 7767}, "FedEx Package": {s: 2512, p: 5578, r: 7517}, "CPASS Pak": {s: 2986, p: 5104, r: 7044}, "CPASS Package": {s: 3264, p: 4826, r: 6766}, "日本郵便 eパケット": {s: 1540, p: 6550, r: 8490}, "日本郵便 EMS": {s: 3900, p: 4190, r: 6130}, "economy Package": {s: 1778, p: 6312, r: 8252}} },
-    { name: "ポケモンカード 旧裏面 フシギバナ", model: "美品・鑑定なし", src: "ヤフオク(要仕入確認)", ebayQ: "Pokemon Venusaur vintage card", srcQ: "ポケモンカード フシギバナ 旧裏面", cost: 9200, sell: 110, best: "日本郵便 eパケット", options: {"eLogi Envelope": {s: 3400, p: 1801, r: 2919}, "eLogi Pak": {s: 3800, p: 1401, r: 2519}, "eLogi Package": {s: 3800, p: 1401, r: 2519}, "FedEx Envelope": {s: 2012, p: 3189, r: 4306}, "FedEx Pak": {s: 2262, p: 2939, r: 4056}, "FedEx Package": {s: 2262, p: 2939, r: 4056}, "CPASS Envelope": {s: 2571, p: 2630, r: 3748}, "CPASS Pak": {s: 2986, p: 2215, r: 3332}, "CPASS Package": {s: 2914, p: 2287, r: 3405}, "日本郵便 eパケット": {s: 1150, p: 4051, r: 5169}, "日本郵便 EMS": {s: 3900, p: 1301, r: 2419}, "economy Package": {s: 1367, p: 3834, r: 4952}} },
-    { name: "CITIZEN アナデジ腕時計", model: "デッドストック", src: "楽天market", ebayQ: "Citizen analog digital watch vintage", srcQ: "シチズン アナデジ 腕時計", cost: 6500, sell: 78, best: "日本郵便 eパケット", options: {"eLogi Envelope": {s: 3400, p: 217, r: 1016}, "eLogi Pak": {s: 3800, p: -183, r: 616}, "eLogi Package": {s: 3800, p: -183, r: 616}, "FedEx Envelope": {s: 2012, p: 1604, r: 2403}, "FedEx Pak": {s: 2262, p: 1354, r: 2153}, "FedEx Package": {s: 2262, p: 1354, r: 2153}, "CPASS Envelope": {s: 2571, p: 1046, r: 1845}, "CPASS Pak": {s: 2986, p: 630, r: 1429}, "CPASS Package": {s: 2914, p: 702, r: 1502}, "日本郵便 eパケット": {s: 1280, p: 2337, r: 3136}, "日本郵便 EMS": {s: 3900, p: -283, r: 516}, "economy Package": {s: 1581, p: 2036, r: 2835}} },
-    { name: "TEAC カセットデッキ", model: "動作品", src: "ハードオフ", ebayQ: "Teac cassette deck vintage", srcQ: "ティアック カセットデッキ", cost: 11000, sell: 130, best: "economy Package", options: {"eLogi Package": {s: 12300, p: -5633, r: -4361}, "FedEx Package": {s: 6700, p: -33, r: 1239}, "CPASS Package": {s: 8882, p: -2215, r: -942}, "日本郵便 EMS": {s: 15100, p: -8433, r: -7161}, "economy Package": {s: 5582, p: 1085, r: 2357}} }
+    { name: "SEIKO 5 ヴィンテージ自動巻き腕時計", model: "型番 SNK807", src: "楽天market", ebayQ: "Seiko 5 SNK807 automatic vintage", srcQ: "セイコー5 SNK807", cost: 8200, sell: 89, pkg: { l: 12, w: 10, h: 8, kg: 0.4 }, net: 11553, refund: 982 },
+    { name: "Canon AE-1 フィルムカメラ 本体+レンズ", model: "AE-1 Program", src: "2ndストリート", ebayQ: "Canon AE-1 Program film camera", srcQ: "キヤノン AE-1 フィルムカメラ", cost: 12000, sell: 145, pkg: { l: 22, w: 16, h: 14, kg: 1.3 }, net: 18866, refund: 1473 },
+    { name: "ポケモンカード 旧裏面 リザードン", model: "美品・鑑定なし", src: "ヤフオク(要仕入確認)", ebayQ: "Pokemon Charizard vintage card", srcQ: "ポケモンカード リザードン 旧裏面", cost: 18500, sell: 210, pkg: { l: 18, w: 13, h: 2, kg: 0.05 }, net: 27556, refund: 2213 },
+    { name: "SONY ウォークマン", model: "WM-2 動作品", src: "ハードオフ", ebayQ: "Sony Walkman WM-2 vintage", srcQ: "ソニー ウォークマン WM-2", cost: 9800, sell: 120, pkg: { l: 14, w: 10, h: 4, kg: 0.25 }, net: 16302, refund: 1143 },
+    { name: "モンブラン マイスターシュテュック 万年筆", model: "中古・箱なし", src: "楽天market", ebayQ: "Montblanc Meisterstuck fountain pen", srcQ: "モンブラン マイスターシュテュック 万年筆", cost: 22000, sell: 260, pkg: { l: 18, w: 6, h: 5, kg: 0.3 }, net: 33885, refund: 2679 },
+    { name: "NINTENDO ゲームボーイポケット", model: "本体・動作確認済み", src: "2ndストリート", ebayQ: "Nintendo Game Boy Pocket console", srcQ: "ゲームボーイポケット 本体", cost: 4500, sell: 58, pkg: { l: 14, w: 8, h: 4, kg: 0.2 }, net: 8046, refund: 515 },
+    { name: "YAMAHA ポータブルシンセサイザー", model: "中古・動作品", src: "ハードオフ", ebayQ: "Yamaha portable synthesizer vintage", srcQ: "ヤマハ ポータブル シンセサイザー", cost: 15000, sell: 175, pkg: { l: 55, w: 35, h: 15, kg: 3.8 }, net: 23806, refund: 1728 },
+    { name: "OMEGA シーマスター", model: "状態要最終確認", src: "ヤフオク(要仕入確認)", ebayQ: "Omega Seamaster vintage watch", srcQ: "オメガ シーマスター", cost: 45000, sell: 520, pkg: { l: 20, w: 15, h: 10, kg: 1 }, net: 67839, refund: 5443 },
+    { name: "LEICA C-Lux コンパクトデジカメ", model: "中古美品", src: "2ndストリート", ebayQ: "Leica C-Lux digital camera", srcQ: "ライカ C-LUX コンパクトデジカメ", cost: 16000, sell: 185, pkg: { l: 13, w: 9, h: 6, kg: 0.35 }, net: 24090, refund: 1940 },
+    { name: "ポケモンカード 旧裏面 フシギバナ", model: "美品・鑑定なし", src: "ヤフオク(要仕入確認)", ebayQ: "Pokemon Venusaur vintage card", srcQ: "ポケモンカード フシギバナ 旧裏面", cost: 9200, sell: 110, pkg: { l: 18, w: 13, h: 2, kg: 0.05 }, net: 14401, refund: 1118 },
+    { name: "CITIZEN アナデジ腕時計", model: "デッドストック", src: "楽天market", ebayQ: "Citizen analog digital watch vintage", srcQ: "シチズン アナデジ 腕時計", cost: 6500, sell: 78, pkg: { l: 12, w: 10, h: 8, kg: 0.35 }, net: 10117, refund: 799 },
+    { name: "TEAC カセットデッキ", model: "動作品", src: "ハードオフ", ebayQ: "Teac cassette deck vintage", srcQ: "ティアック カセットデッキ", cost: 11000, sell: 130, pkg: { l: 45, w: 35, h: 18, kg: 6.5 }, net: 17667, refund: 1272 }
   ];
-  survivors.forEach(function (it) { it.selected = it.best; });
+  survivors.forEach(function (it) {
+    recomputeOptionsForItem(it);
+    it.selected = it.best;
+    it.pkgEdited = false;
+  });
 
   function ebayUrl(q) { return "https://www.ebay.com/sch/i.html?_nkw=" + encodeURIComponent(q); }
   function sourceUrl(src, q) {
@@ -728,6 +1006,24 @@ It usually takes from several days to 1 week.</textarea>
     if (src.indexOf("ハードオフ") === 0) return "https://netmall.hardoff.co.jp/search/?keyword=" + encodeURIComponent(q);
     return "#";
   }
+
+  // ---- 既存の出品データ(サンプル) ----
+  // 実運用では eBay Inventory API / Sell API から毎晩取得する想定。
+  // matchIdx: survivors配列と同一商品の場合、そのインデックスを指定(仕入れ値・梱包データを再利用するため)。
+  // qty: 現在庫。0のものだけが「在庫補充リサーチ」の対象になる。
+  var listings = [
+    { title: "SEIKO 5 ヴィンテージ自動巻き腕時計(型番 SNK807)", matchIdx: 0, qty: 0, sold: 7 },
+    { title: "Canon AE-1 フィルムカメラ 本体+レンズ", matchIdx: 1, qty: 3, sold: 2 },
+    { title: "NINTENDO ゲームボーイポケット(本体・動作確認済み)", matchIdx: 5, qty: 0, sold: 4 },
+    { title: "CASIO G-SHOCK DW-5600 復刻モデル", matchIdx: null, qty: 0, sold: 12, sell: 65, src: "楽天market", srcQ: "カシオ G-SHOCK DW-5600" },
+    { title: "PENTAX K1000 フィルムカメラ ボディ", matchIdx: null, qty: 0, sold: 2, sell: 110, src: "2ndストリート", srcQ: "ペンタックス K1000 フィルムカメラ" },
+    { title: "ポケモンカード 旧裏面 ピカチュウ", matchIdx: null, qty: 0, sold: 15, sell: 95, src: "ヤフオク!", srcQ: "ポケモンカード ピカチュウ 旧裏面" },
+    { title: "TASCAM ポータブルMTR", matchIdx: null, qty: 1, sold: 5, sell: 88, src: "ハードオフ", srcQ: "TASCAM ポータブル MTR" }
+  ];
+  // 既存出品と一致する survivors は「新規商品リサーチ」の候補から除外する(在庫の有無を問わない)
+  listings.forEach(function (l) {
+    if (l.matchIdx != null) survivors[l.matchIdx].alreadyListed = true;
+  });
 
   var body = document.getElementById("survivor-body");
   var sortState = { key: "profit", dir: -1 };
@@ -742,18 +1038,88 @@ It usually takes from several days to 1 week.</textarea>
       .sort(function (a, b) { return it.options[b].p - it.options[a].p; });
   }
 
+  // 梱包サイズはAIによる概算(商品名・型番からの見積もり)。出品前にセラーが実測して編集する想定。
+  function renderPkgCell(it, idx) {
+    if (it.editingPkg) {
+      return (
+        '<div class="pkg-edit" data-idx="' + idx + '">' +
+        '<input type="number" class="pkg-l" value="' + it.pkg.l + '" min="0" step="1" aria-label="奥行cm">' +
+        '<span class="pkg-unit">×</span>' +
+        '<input type="number" class="pkg-w" value="' + it.pkg.w + '" min="0" step="1" aria-label="幅cm">' +
+        '<span class="pkg-unit">×</span>' +
+        '<input type="number" class="pkg-h" value="' + it.pkg.h + '" min="0" step="1" aria-label="高さcm">' +
+        '<span class="pkg-unit">cm</span>' +
+        '<input type="number" class="pkg-kg-input" value="' + it.pkg.kg + '" min="0" step="0.05" aria-label="重量kg">' +
+        '<span class="pkg-unit">kg</span>' +
+        '<button type="button" class="pkg-save-btn pkg-save" data-idx="' + idx + '">確定</button>' +
+        '</div>'
+      );
+    }
+    var note = it.pkgEdited ? "編集済み" : "AI概算・クリックで編集";
+    return (
+      '<button type="button" class="pkg-display' + (it.pkgEdited ? ' pkg-is-edited' : '') + '" data-idx="' + idx + '">' +
+      it.pkg.l + '×' + it.pkg.w + '×' + it.pkg.h + 'cm' +
+      '<span class="pkg-note">' + it.pkg.kg + 'kg・' + note + '</span>' +
+      '</button>'
+    );
+  }
+
+  function savePkgEdit(idx) {
+    var cell = body.querySelector('.pkg-edit[data-idx="' + idx + '"]');
+    if (!cell) return;
+    var it = survivors[idx];
+    var l = Number(cell.querySelector(".pkg-l").value) || it.pkg.l;
+    var w = Number(cell.querySelector(".pkg-w").value) || it.pkg.w;
+    var h = Number(cell.querySelector(".pkg-h").value) || it.pkg.h;
+    var kg = Number(cell.querySelector(".pkg-kg-input").value) || it.pkg.kg;
+    it.pkg = { l: l, w: w, h: h, kg: kg };
+    it.pkgEdited = true;
+    it.editingPkg = false;
+    recomputeOptionsForItem(it);
+    it.selected = it.best;
+    renderTable();
+  }
+
   function renderTable() {
     survivors.forEach(function (it) {
       var methods = availableMethods(it);
+      if (!methods.length) { it.selected = null; return; }
       if (methods.indexOf(it.selected) === -1) it.selected = methods[0];
     });
 
-    var rows = survivors.slice().sort(function (a, b) {
-      return (a.options[a.selected].p - b.options[b.selected].p) * sortState.dir;
+    var candidates = survivors.filter(function (it) { return !it.alreadyListed; });
+    var excluded = survivors.filter(function (it) { return it.alreadyListed; });
+    var excludeNoteEl = document.getElementById("exclude-note");
+    if (excludeNoteEl) {
+      excludeNoteEl.textContent = excluded.length
+        ? "出品済みのため候補から除外: " + excluded.length + "件(" + excluded.map(function (it) { return it.name; }).join("、") + ")"
+        : "";
+    }
+
+    var rows = candidates.slice().sort(function (a, b) {
+      var ap = a.selected ? a.options[a.selected].p : -Infinity;
+      var bp = b.selected ? b.options[b.selected].p : -Infinity;
+      return (ap - bp) * sortState.dir;
     });
 
     body.innerHTML = rows.map(function (it) {
       var idx = survivors.indexOf(it);
+
+      if (!it.selected) {
+        return (
+          '<tr>' +
+          '<td><button class="gen-btn" data-idx="' + idx + '">生成</button></td>' +
+          '<td class="item-name">' + it.name + '<span class="model">' + it.model + '</span></td>' +
+          '<td><a class="cell-link" href="' + ebayUrl(it.ebayQ) + '" target="_blank" rel="noopener">検索結果を見る</a></td>' +
+          '<td>' + it.src + '<br><a class="cell-link" href="' + sourceUrl(it.src, it.srcQ) + '" target="_blank" rel="noopener">仕入れ元を見る</a></td>' +
+          '<td class="num">¥' + it.cost.toLocaleString() + '</td>' +
+          '<td class="num">$' + it.sell + '</td>' +
+          '<td class="pkg-cell">' + renderPkgCell(it, idx) + '</td>' +
+          '<td colspan="6" class="table-placeholder">この梱包サイズ・重量では利用可能な発送方法がありません(サイズ・重量が上限を超えています)。梱包サイズを見直してください。</td>' +
+          '</tr>'
+        );
+      }
+
       var methods = availableMethods(it);
       var sel = it.options[it.selected];
       var margin = Math.round(sel.p / it.cost * 100);
@@ -768,6 +1134,7 @@ It usually takes from several days to 1 week.</textarea>
         '<td>' + it.src + '<br><a class="cell-link" href="' + sourceUrl(it.src, it.srcQ) + '" target="_blank" rel="noopener">仕入れ元を見る</a></td>' +
         '<td class="num">¥' + it.cost.toLocaleString() + '</td>' +
         '<td class="num">$' + it.sell + '</td>' +
+        '<td class="pkg-cell">' + renderPkgCell(it, idx) + '</td>' +
         '<td><select class="ship-select" data-idx="' + idx + '">' + optionsHtml + '</select></td>' +
         '<td class="num">¥' + sel.s.toLocaleString() + '</td>' +
         '<td class="num profit-pos">¥' + sel.p.toLocaleString() + '</td>' +
@@ -791,8 +1158,33 @@ It usually takes from several days to 1 week.</textarea>
       });
     });
 
-    var totalProfit = survivors.reduce(function (sum, it) { return sum + it.options[it.selected].p; }, 0);
-    var totalRefund = survivors.reduce(function (sum, it) { return sum + it.options[it.selected].r; }, 0);
+    body.querySelectorAll(".pkg-display").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var idx = Number(btn.getAttribute("data-idx"));
+        survivors[idx].editingPkg = true;
+        renderTable();
+        var input = body.querySelector('.pkg-edit[data-idx="' + idx + '"] .pkg-l');
+        if (input) input.focus();
+      });
+    });
+
+    body.querySelectorAll(".pkg-save").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        savePkgEdit(Number(btn.getAttribute("data-idx")));
+      });
+    });
+
+    body.querySelectorAll(".pkg-edit input").forEach(function (inp) {
+      inp.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          savePkgEdit(Number(inp.closest(".pkg-edit").getAttribute("data-idx")));
+        }
+      });
+    });
+
+    var totalProfit = candidates.reduce(function (sum, it) { return sum + (it.selected ? it.options[it.selected].p : 0); }, 0);
+    var totalRefund = candidates.reduce(function (sum, it) { return sum + (it.selected ? it.options[it.selected].r : 0); }, 0);
     kpiValueEl.textContent = "¥" + totalProfit.toLocaleString();
     kpiSubEl.textContent = "還付込み ¥" + totalRefund.toLocaleString() + "(米国関税は未加味・要確認)";
   }
@@ -804,11 +1196,15 @@ It usually takes from several days to 1 week.</textarea>
     runBtn.disabled = true;
     runBtn.textContent = "スキャン中...";
     setTimeout(function () {
-      document.getElementById("kpi-survived").textContent = "12";
+      var candidateCount = survivors.filter(function (it) { return !it.alreadyListed; }).length;
+      var excludedCount = survivors.length - candidateCount;
+      var scanTotal = 150;
+      document.getElementById("kpi-survived").textContent = String(candidateCount);
       var survivedSub = document.querySelector("#kpi-survived").closest(".kpi").querySelector(".sub");
-      survivedSub.textContent = "人間の最終確認待ち";
-      document.getElementById("kpi-reject-rate").textContent = "92%";
-      document.getElementById("kpi-reject-sub").textContent = "138 / 150 件を自動除外";
+      survivedSub.textContent = excludedCount ? "うち出品済み除外 " + excludedCount + "件・人間の最終確認待ち" : "人間の最終確認待ち";
+      var rejectedCount = scanTotal - candidateCount - excludedCount;
+      document.getElementById("kpi-reject-rate").textContent = Math.round(rejectedCount / scanTotal * 100) + "%";
+      document.getElementById("kpi-reject-sub").textContent = rejectedCount + " / " + scanTotal + " 件を自動除外";
       renderTable();
       hasRun = true;
       runBtn.disabled = false;
@@ -817,6 +1213,59 @@ It usually takes from several days to 1 week.</textarea>
   }
   runBtn.addEventListener("click", runResearch);
   epacketToggle.addEventListener("change", function () { if (hasRun) renderTable(); });
+
+  // ---- モード切り替え(新規商品リサーチ / 在庫補充リサーチ) ----
+  var NEW_MODE_SECTION_IDS = ["seller-section", "research-section", "kpis-section", "survivor-section", "listing-section", "rejected-section"];
+  var currentMode = "new";
+
+  function setMode(mode) {
+    currentMode = mode;
+    NEW_MODE_SECTION_IDS.forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.style.display = mode === "new" ? "" : "none";
+    });
+    document.getElementById("restock-section").style.display = mode === "restock" ? "" : "none";
+    document.getElementById("mode-btn-new").classList.toggle("active", mode === "new");
+    document.getElementById("mode-btn-new").setAttribute("aria-selected", mode === "new" ? "true" : "false");
+    document.getElementById("mode-btn-restock").classList.toggle("active", mode === "restock");
+    document.getElementById("mode-btn-restock").setAttribute("aria-selected", mode === "restock" ? "true" : "false");
+    if (mode === "restock") renderRestockTable();
+  }
+
+  document.getElementById("mode-btn-new").addEventListener("click", function () { setMode("new"); });
+  document.getElementById("mode-btn-restock").addEventListener("click", function () { setMode("restock"); });
+  setMode("new");
+
+  function renderRestockTable() {
+    var restockBody = document.getElementById("restock-body");
+    var soldOut = listings.filter(function (l) { return l.qty === 0; });
+    if (!soldOut.length) {
+      restockBody.innerHTML = '<tr><td colspan="7" class="table-placeholder">現在、在庫0の出品はありません。</td></tr>';
+      return;
+    }
+    restockBody.innerHTML = soldOut.map(function (l) {
+      var match = l.matchIdx != null ? survivors[l.matchIdx] : null;
+      var sell = match ? match.sell : l.sell;
+      var src = match ? match.src : l.src;
+      var srcQ = match ? match.srcQ : l.srcQ;
+      var profitCell = "—(仕入れ値の再確認が必要)";
+      if (match && match.selected) {
+        var sel = match.options[match.selected];
+        profitCell = "¥" + sel.p.toLocaleString() + "(" + match.selected + ")";
+      }
+      return (
+        '<tr>' +
+        '<td class="item-name">' + l.title + '</td>' +
+        '<td><span class="reason-tag" style="color: var(--negative); border-color: var(--negative);">在庫0</span></td>' +
+        '<td class="num">' + l.sold + '</td>' +
+        '<td class="num">$' + sell + '</td>' +
+        '<td class="restock-src">' + src + '</td>' +
+        '<td class="num">' + profitCell + '</td>' +
+        '<td><a class="cell-link" href="' + sourceUrl(src, srcQ) + '" target="_blank" rel="noopener">仕入れ元を再検索</a></td>' +
+        '</tr>'
+      );
+    }).join("");
+  }
 
   // ---- 商品ページ生成(タイトル・説明文) ----
   // 実運用では①(商品説明)にはSTAGE2で生成した実際の英語状態ノートが入る。
