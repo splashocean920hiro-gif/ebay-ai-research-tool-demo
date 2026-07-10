@@ -765,6 +765,7 @@ It usually takes from several days to 1 week.</textarea>
       <h2>在庫切れ出品(再仕入れ候補)</h2>
       <p class="section-note">出品ページ自体は残っているが在庫0の商品。売れた実績があるので、同じ商品をもう一度仕入れられないか探します</p>
     </div>
+    <button class="run-btn" id="restock-bulk-search-btn" style="margin-bottom:1rem;">在庫切れ全件を仕入れ元で一括検索</button>
     <div class="table-wrap">
       <table id="restock-table">
         <thead>
@@ -1236,36 +1237,59 @@ It usually takes from several days to 1 week.</textarea>
   document.getElementById("mode-btn-restock").addEventListener("click", function () { setMode("restock"); });
   setMode("new");
 
+  function restockSourceInfo(l) {
+    var match = l.matchIdx != null ? survivors[l.matchIdx] : null;
+    return {
+      match: match,
+      sell: match ? match.sell : l.sell,
+      src: match ? match.src : l.src,
+      srcQ: match ? match.srcQ : l.srcQ
+    };
+  }
+
+  var restockBulkBtn = document.getElementById("restock-bulk-search-btn");
+
   function renderRestockTable() {
     var restockBody = document.getElementById("restock-body");
     var soldOut = listings.filter(function (l) { return l.qty === 0; });
+
+    restockBulkBtn.disabled = !soldOut.length;
+    restockBulkBtn.textContent = soldOut.length
+      ? "在庫切れ全件(" + soldOut.length + "件)を仕入れ元で一括検索"
+      : "在庫切れ全件を仕入れ元で一括検索";
+
     if (!soldOut.length) {
       restockBody.innerHTML = '<tr><td colspan="7" class="table-placeholder">現在、在庫0の出品はありません。</td></tr>';
       return;
     }
     restockBody.innerHTML = soldOut.map(function (l) {
-      var match = l.matchIdx != null ? survivors[l.matchIdx] : null;
-      var sell = match ? match.sell : l.sell;
-      var src = match ? match.src : l.src;
-      var srcQ = match ? match.srcQ : l.srcQ;
+      var info = restockSourceInfo(l);
       var profitCell = "—(仕入れ値の再確認が必要)";
-      if (match && match.selected) {
-        var sel = match.options[match.selected];
-        profitCell = "¥" + sel.p.toLocaleString() + "(" + match.selected + ")";
+      if (info.match && info.match.selected) {
+        var sel = info.match.options[info.match.selected];
+        profitCell = "¥" + sel.p.toLocaleString() + "(" + info.match.selected + ")";
       }
       return (
         '<tr>' +
         '<td class="item-name">' + l.title + '</td>' +
         '<td><span class="reason-tag" style="color: var(--negative); border-color: var(--negative);">在庫0</span></td>' +
         '<td class="num">' + l.sold + '</td>' +
-        '<td class="num">$' + sell + '</td>' +
-        '<td class="restock-src">' + src + '</td>' +
+        '<td class="num">$' + info.sell + '</td>' +
+        '<td class="restock-src">' + info.src + '</td>' +
         '<td class="num">' + profitCell + '</td>' +
-        '<td><a class="cell-link" href="' + sourceUrl(src, srcQ) + '" target="_blank" rel="noopener">仕入れ元を再検索</a></td>' +
+        '<td><a class="cell-link" href="' + sourceUrl(info.src, info.srcQ) + '" target="_blank" rel="noopener">仕入れ元を再検索</a></td>' +
         '</tr>'
       );
     }).join("");
   }
+
+  restockBulkBtn.addEventListener("click", function () {
+    var soldOut = listings.filter(function (l) { return l.qty === 0; });
+    soldOut.forEach(function (l) {
+      var info = restockSourceInfo(l);
+      window.open(sourceUrl(info.src, info.srcQ), "_blank", "noopener");
+    });
+  });
 
   // ---- 商品ページ生成(タイトル・説明文) ----
   // 実運用では①(商品説明)にはSTAGE2で生成した実際の英語状態ノートが入る。
