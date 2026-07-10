@@ -233,6 +233,29 @@
     gap: 0.5rem;
   }
   .coverage-line strong { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--accent); }
+  .run-btn {
+    display: block;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.9rem 1rem;
+    font-family: var(--font-body);
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #ffffff;
+    background: var(--accent);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: filter 0.12s ease;
+  }
+  .run-btn:hover { filter: brightness(1.08); }
+  .run-btn:disabled { cursor: default; opacity: 0.7; }
+  .table-placeholder {
+    white-space: normal !important;
+    text-align: center;
+    color: var(--ink-faint);
+    padding: 2rem 1rem !important;
+  }
 
   /* ---- survivor table ---- */
   .table-wrap { overflow-x: auto; border: 1px solid var(--line-strong); background: var(--surface); }
@@ -500,18 +523,18 @@ It usually takes from several days to 1 week.</textarea>
     </div>
     <div class="kpi">
       <div class="label">検品ゲート通過</div>
-      <div class="value positive">12</div>
-      <div class="sub">人間の最終確認待ち</div>
+      <div class="value positive" id="kpi-survived">—</div>
+      <div class="sub">リサーチ開始前</div>
     </div>
     <div class="kpi">
       <div class="label">却下率</div>
-      <div class="value negative">92%</div>
-      <div class="sub">138 / 150 件を自動除外</div>
+      <div class="value negative" id="kpi-reject-rate">—</div>
+      <div class="sub" id="kpi-reject-sub">リサーチ開始前</div>
     </div>
     <div class="kpi">
       <div class="label">生き残り想定利益合計</div>
-      <div class="value positive">¥71,761</div>
-      <div class="sub">手数料・送料差引後(米国関税は未加味・要確認)</div>
+      <div class="value positive">—</div>
+      <div class="sub">リサーチ開始前</div>
     </div>
   </div>
 
@@ -578,6 +601,7 @@ It usually takes from several days to 1 week.</textarea>
       </div>
     </div>
     <div class="coverage-line" id="coverage-line"></div>
+    <button class="run-btn" id="run-research-btn">この設定でリサーチ開始</button>
   </section>
 
   <section>
@@ -607,7 +631,9 @@ It usually takes from several days to 1 week.</textarea>
             <th>検品 3層</th>
           </tr>
         </thead>
-        <tbody id="survivor-body"></tbody>
+        <tbody id="survivor-body">
+          <tr><td colspan="12" class="table-placeholder">上の「リサーチ設定」で条件を選び、「この設定でリサーチ開始」ボタンを押してください。</td></tr>
+        </tbody>
       </table>
     </div>
   </section>
@@ -770,8 +796,27 @@ It usually takes from several days to 1 week.</textarea>
     kpiValueEl.textContent = "¥" + totalProfit.toLocaleString();
     kpiSubEl.textContent = "還付込み ¥" + totalRefund.toLocaleString() + "(米国関税は未加味・要確認)";
   }
-  renderTable();
-  epacketToggle.addEventListener("change", renderTable);
+
+  var hasRun = false;
+  var runBtn = document.getElementById("run-research-btn");
+
+  function runResearch() {
+    runBtn.disabled = true;
+    runBtn.textContent = "スキャン中...";
+    setTimeout(function () {
+      document.getElementById("kpi-survived").textContent = "12";
+      var survivedSub = document.querySelector("#kpi-survived").closest(".kpi").querySelector(".sub");
+      survivedSub.textContent = "人間の最終確認待ち";
+      document.getElementById("kpi-reject-rate").textContent = "92%";
+      document.getElementById("kpi-reject-sub").textContent = "138 / 150 件を自動除外";
+      renderTable();
+      hasRun = true;
+      runBtn.disabled = false;
+      runBtn.textContent = "再スキャン(この設定で)";
+    }, 900);
+  }
+  runBtn.addEventListener("click", runResearch);
+  epacketToggle.addEventListener("change", function () { if (hasRun) renderTable(); });
 
   // ---- 商品ページ生成(タイトル・説明文) ----
   // 実運用では①(商品説明)にはSTAGE2で生成した実際の英語状態ノートが入る。
