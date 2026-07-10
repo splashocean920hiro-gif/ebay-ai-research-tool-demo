@@ -1,3 +1,8 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>eBay AIリサーチ・検品ツール(デモ)</title>
 <style>
   :root {
@@ -343,6 +348,17 @@
     * { transition: none !important; }
   }
 
+  /* ---- small screens ---- */
+  @media (max-width: 480px) {
+    .app { padding: 1.4rem 0.9rem 3.5rem; }
+    body { font-size: 14.5px; }
+    .topbar h1 { font-size: 1.2rem; }
+    .kpis { grid-template-columns: 1fr; }
+    .listing-box textarea { height: 11rem; }
+    .threshold-row { gap: 1rem; }
+    .table-wrap { border-left: none; border-right: none; margin: 0 -0.9rem; width: calc(100% + 1.8rem); }
+  }
+
   /* ---- seller info ---- */
   .seller-section { margin-bottom: 2.4rem; }
   .seller-panel {
@@ -436,6 +452,8 @@
     line-height: 1.5;
   }
 </style>
+</head>
+<body>
 
 <div class="app">
 
@@ -886,3 +904,5 @@ It usually takes from several days to 1 week.</textarea>
     revealBtn.textContent = open ? "隠す" : "4件を表示";
   });
 </script>
+</body>
+</html>
